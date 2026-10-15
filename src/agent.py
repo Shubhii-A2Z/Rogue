@@ -1,3 +1,5 @@
+from memory import make_checkpointer
+from langgraph.checkpoint.memory import InMemorySaver
 from schemas import TurnSummary
 from langchain.agents.structured_output import ProviderStrategy
 from prompts import build_system_prompt
@@ -45,6 +47,7 @@ def build_middleware(
 
 def build_agent(
     *,
+    checkpointer: InMemorySaver | None=None,
     enable_hitl: bool | None=None,
     extra_guidance: str=""
 ):
@@ -80,5 +83,6 @@ def build_agent(
         system_prompt=build_system_prompt(extra_guidance=extra_guidance),
         middleware=build_middleware(enable_hitl=use_hitl),
         response_format=ProviderStrategy(TurnSummary),
+        checkpointer=checkpointer or make_checkpointer(),
         name="Coding Agent"
     )
