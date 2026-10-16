@@ -1,3 +1,4 @@
+from langchain_core.tools import tool
 from tools.jobs import read_log_tail
 from tools.jobs import stop_job
 import time
@@ -207,5 +208,12 @@ def _run_background(command: str)->str:
         f"--------output so far------\n{_clip(tail)}"
     )
 
-    
-    
+
+@tool
+def stop_job(pid: int)->str:
+    """
+    Stop a background job previously started by run_command.
+    Args:
+        pid: The process id of job to stop
+    """
+    return stop_job(pid)
