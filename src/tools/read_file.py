@@ -13,11 +13,11 @@ def read_file(path: str)->str:
     try:
         file_path=resolve_work_path(path)
     except ValueError as e:
-        raise ValueError(f"Path escapes working directory: {e}")
+        return f"Path escapes working directory: {e}"
     
     try:
         return file_path.read_text(encoding="utf-8")
     except FileNotFoundError:
-        raise FileNotFoundError(f"File not found: {path}")
+        return f"File not found: {path}"
     except Exception as e:
-        raise Exception(f"Error reading the file: {e}")
+        return f"Error reading the file: {e}"

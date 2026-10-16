@@ -5,7 +5,7 @@ from config.config import get_working_directory
 
 # blocking certain paths from being accessed by the AI Coding Agent
 BLOCKED_PATH_PATTERNS=[
-    ".env"
+    ".env",
     ".env.*",
     ".pem",
     ".secret",

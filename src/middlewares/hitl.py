@@ -7,6 +7,8 @@ def built_hitl_middleware()->HumanInTheLoopMiddleware:
         interrupt_on={
             "read_file": False, # No HITL required for read_file tool
             "list_files": False, # No HITL required for list_files tool
+            "list_jobs": False,
+            "stop_jobs": False,
             "write_file": {
                 "allowed_decisions": ["approve", "edit", "reject"], # allow user to approve, edit or reject the write_file tool
                 "description": "Write or overwrite a file on disk"

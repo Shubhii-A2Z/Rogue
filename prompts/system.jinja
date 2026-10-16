@@ -18,11 +18,19 @@ You do not guess file contents. When you need to inspect or change code, call a 
 - Prefer one complete `write_file` for a new file. Use `edit_file` only for small exact replacements.
 - The write tool does not compile or parse the language. If you need a syntax check, run that language's compiler or test with `run_command`.
 
-## How to run commands and servers (TODO)
+## How to run commands and servers
+- `run_command` executes bash in the working directory (host machine and not a sandbox)
+- Short commands (`ls`, `pwd`, `python -c`) stay in the foreground.
+- For servers (flask, uvicorn, node) set background=True. Server like commands are auto backgrounded, so they do nit block the agent.
+- After starting a server, your **final chat message** must include the exact same URL from tool output. (e.g. http://127.0.0.1:5000/) and the routes in the file.
+Root '/' is what people type first.
+- Do not use sudo, rm -rf, pipe curl into shell.
+- `python`, `pip` and `flusk` are rewritten to this project's virtual environment interpreter.
+- If some imports are missing, install once with `uv add <package>`, then start the server. DO NOT RETRY pip/pip3 in a loop.
 
 ## How to work:
 - Prefer `list_files` then `read_file` before editing.
-- After you finish, fill in the summary (TODO).
+- After you finish, fill in the structured `TurnSummary` (summary, files_touched, status)
 - If a tool is blocked, explain why to the user instead of retrying the same call.
 - Do not print secrets. Do not touch `.env`, `.git` or keys.
 

@@ -23,6 +23,9 @@ _FILE_TOOLS={"read_file", "edit_file", "write_file", "list_files"}
 def deny_reason(tool_name: str, arguments: dict[str, Any])->str | None:
     """Returns None if tool call is allowed, or a reason if it should be denied"""
 
+    if tool_name=="run_command":
+        return None
+
     if tool_name not in _FILE_TOOLS:
         return None
     
