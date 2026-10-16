@@ -1,3 +1,10 @@
+from tools.jobs import read_log_tail
+from tools.jobs import stop_job
+import time
+from tools.jobs import BackgroundJob
+from tools.jobs import register
+from datetime import UTC
+from datetime import datetime
 import subprocess
 import re
 import sys
@@ -122,4 +129,83 @@ def _run_foreground(command: str, timeout: int)->str:
     
     body="\n".join(chunks) if chunks else "No output."
     return f"exit_code: {completed.returncode}\ncwd={current_working_directory}\n{_clip(body)}"
+
+
+def _run_background(command: str)->str:
+    """Running long-lived servers e.g. python app.py"""
+
+    current_working_directory=get_working_directory()
+    current_working_directory.mkdir(parents=True, exist_ok=True)
+
+    # Loading accessible environment variables in form of a dictionary
+    env=os.environ.copy()
+    # Setting buffer to 1, so that output is not buffered and shown immediately
+    env.setdefault("PYTHONUNBUFFERED", "1")
+
+    log_dir=current_working_directory / ".agent_jobs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    current_timestamp=datetime.now(UTC).isoformat()
+    current_timestamp=current_timestamp.replace(":", "").replace("+", "")
+
+    # Creates a temporary log file with prefix 'pending' and timestamp
+    temp_log=log_dir / f"pending-{current_timestamp}.log"
+    # Opening the temporary log file in write mode with UTF-8 encoding
+    log_file=temp_log.open('w', encoding="utf-8")
+
+    try:
+        process=subprocess.Popen( 
+            ["/bin/bash", "-lc", command],
+            cwd=current_working_directory,
+            env=env,
+            stdout=log_file, # Redirect standard output to log file
+            stderr=subprocess.STDOUT, # Redirect standard error to standard output
+            start_new_session=True # Starts a new session for every command
+        )
+    finally:
+        log_file.close()
+
+    # Creating a permanent log file with processId as unique identifier
+    log_path=log_dir / f"{process.pid}.log"
+    # Rename the temporary log file to permanent log file
+    temp_log.rename(log_path)
+
+    # Register the background job
+    register(
+        BackgroundJob(
+            processId=process.pid,
+            bash_command=command,
+            log_path=log_path,
+            started_at=datetime.now(UTC).isoformat(),
+            process=process
+        )
+    )
+
+    time.sleep(1)
+
+    tail=read_log_tail(log_path)
+    if process.poll() is not None:
+        stop_job(process.pid)
+        return (
+            f"Background command exited immediately (process_id={process.pid})"
+            f"exit_code: {process.returncode}\n{_clip(tail)}"
+        )
+    
+    # finds any URLs in the log file
+    urls=re.findall(r"https?://[^\s]+", tail)
+
+    url_line=f"Open in browser: {urls[0]}\n" if urls else (
+        "No url in the log yet - try http://127.0.0.1:3000"
+        "and check list_jobs if it is blank.\n"
+    )
+
+    return (
+        f"{url_line}\n"
+        f"Started background job (pid={process.pid}).\n"
+        f"Log: {log_path}\n"
+        f"cwd: {current_working_directory}\n"
+        f"--------output so far------\n{_clip(tail)}"
+    )
+
+    
     
