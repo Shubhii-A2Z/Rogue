@@ -1,3 +1,5 @@
+from tools.jobs import is_running
+from tools.jobs import all_jobs
 from langchain_core.tools import tool
 from tools.jobs import read_log_tail
 from tools.jobs import stop_job
@@ -155,7 +157,7 @@ def _run_background(command: str)->str:
     log_file=temp_log.open('w', encoding="utf-8")
 
     try:
-        process=subprocess.Popen( 
+        process=subprocess.Popen(
             ["/bin/bash", "-lc", command],
             cwd=current_working_directory,
             env=env,
@@ -249,3 +251,30 @@ def run_command(command: str, background: bool=False, timeout_seconds: int=0)->s
         return _run_background(command)
     else:
         return _run_foreground(command, timeout_seconds)
+
+
+@tool
+def list_jobs()->str:
+    """
+    List all background jobs started by run_command.
+    """
+
+    jobs=all_jobs()
+    if not jobs:
+        return "No background jobs running."
+    
+    lines=[]
+    for job in jobs:
+        state="running" if is_running(job.processId) else "exited"
+        lines.append(
+            f"pid: {job.processId} state: {state} started: {job.started_at} command: {job.bash_command}"
+        )
+
+        tail=read_log_tail(job.log_path, max_chars=800)
+
+        if tail:
+            lines.append(tail.rstrip())
+            lines.append("-----------------------")
+    
+    # Joining all lines with newline character
+    return "\n".join(lines)
