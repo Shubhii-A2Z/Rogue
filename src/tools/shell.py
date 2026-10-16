@@ -1,6 +1,9 @@
+import subprocess
 import re
 import sys
 import shlex
+import os
+from config.config import get_working_directory
 
 MAX_OUTPUT_CHARS=8000
 DEFAULT_TIMEOUT=30
@@ -81,3 +84,42 @@ def _clip(text: str)->str:
         return text
     return text[-MAX_OUTPUT_CHARS:]+"\n... (truncated)"
 
+
+def _run_foreground(command: str, timeout: int)->str:
+    """Running short-lived commands like 'ls', 'pwd', 'cat', 'echo' etc"""
+
+    current_working_directory=get_working_directory()
+    current_working_directory.mkdir(parents=True, exist_ok=True)
+
+    # Loading accessible environment variables in form of a dictionary
+    env=os.environ.copy()
+    # Setting buffer to 1, so that output is not buffered and shown immediately
+    env.setdefault("PYTHONUNBUFFERED", "1")
+
+    try:
+        completed=subprocess.run(
+            ["/bin/bash", "-lc", command], # Using bash to execute the command, -l for login shell, -c for command
+            cwd=current_working_directory,
+            env=env,
+            timeout=timeout,
+            capture_output=True, # Capture stdout/stderr
+            text=True # Decode stdout/stderr as text
+        )
+    except subprocess.TimeoutExpired as e:
+        stdout=(e.stdout or "") + (e.stderr or "")
+        return (
+            f"Timed out after {timeout}s (process killed)."
+            f"If this is a server, re-run with background=True."
+            f"{_clip(str(stdout))}"
+        )
+    
+    # Command completed successfully
+    chunks=[]
+    if completed.stdout:
+        chunks.append(completed.stdout.rstrip())
+    if completed.stderr:
+        chunks.append(completed.stderr.rstrip())
+    
+    body="\n".join(chunks) if chunks else "No output."
+    return f"exit_code: {completed.returncode}\ncwd={current_working_directory}\n{_clip(body)}"
+    
