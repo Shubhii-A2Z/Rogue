@@ -216,4 +216,36 @@ def stop_job(pid: int)->str:
     Args:
         pid: The process id of job to stop
     """
+
     return stop_job(pid)
+
+
+@tool
+def run_command(command: str, background: bool=False, timeout_seconds: int=0)->str:
+    """
+    Run a bash command in the working directory (host machine, not a sandbox).
+    Foreground commands wait for completion. Set background=True for server like (flask, uvicorn, npm start)
+    so they keep running. Server-like commands are auto backgrounded even if you forget the flag.
+
+    Args:
+        command: bash command to run e.g. 'python app.py' or 'ls -la'.
+        background: If true, start the process and run pid immediately.
+        timeout_seconds: Maximum time to wait for the command to complete. This is for foreground timeout. 0 uses default of 30s.
+    """
+
+    blocked=deny_command(command)
+    if blocked:
+        return blocked
+    
+    timeout_seconds=timeout_seconds if timeout_seconds>0 else DEFAULT_TIMEOUT
+
+    # Check if the command is a background job
+    background_job=bool(background) or looks_like_server(command)
+
+    # Rewriting the command to use the virtual environment's python/pip
+    command=rewrite_command(command)
+
+    if background_job:
+        return _run_background(command)
+    else:
+        return _run_foreground(command, timeout_seconds)
