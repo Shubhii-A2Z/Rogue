@@ -1,3 +1,5 @@
+from tools.write_file import write_file
+from tools.edit_file import edit_file
 from tools.shell import stop_job
 from tools.shell import list_jobs
 from tools.shell import run_command
@@ -10,6 +12,8 @@ ALL_TOOLS=[
     run_command,
     list_jobs,
     stop_job,
+    edit_file,
+    write_file
 ]
 
 

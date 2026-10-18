@@ -6,6 +6,7 @@ from langchain.tools import tool
 def write_file(path: str, content: str)->str:
     """
     Writes a file to the given path.
+    Works for any text file (.js, .java, .py etc).
 
     Args:
         path: Path relative to the working directory.
