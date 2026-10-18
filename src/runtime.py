@@ -112,10 +112,11 @@ def format_interrupt_payload(payload: dict[str, Any])->str:
     lines=[]
 
     for index, action in enumerate(requests, start=1):
-        # Extracts the tool name, arguments, and description from the action
-        name=action.get("name", "")
-        args=dict(action.get("args", {}))
-        description=action.get("description", "")
+        name=action.get("name", "") # Extracts the tool name
+        args=dict(action.get("args", {})) # Extract arguments/parameters in format {"argument": "value"}
+        description=action.get("description", "") # Extract explanation of why the interrupt was triggered.
+
+        # For each action, creates a formatted string showing the tool name, description, and arguments
         lines.append(f"{index}. {name} ({description})")
 
         for key, value in args.items():
