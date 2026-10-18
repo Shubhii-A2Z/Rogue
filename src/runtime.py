@@ -1,3 +1,4 @@
+from tools.text import prepare_file_content
 from messages import last_tool_text
 from messages import last_ai_message
 from langgraph.types import Command
@@ -49,11 +50,11 @@ def _as_summary(value: Any)->TurnSummary | None:
 
 def parse_invoke_result(result: Any)->AgentTurnResult:
     """
-    Parse the result of an agent invocation, extracting the agent's reply.
-    If the result contains an interruption (e.g. for human-in-the-loop),
-    this will be exposed in the `interrupts` field.
+    Parse the result of a v2 agent invocation, extracting messages and interruptions.
     """
-    interrupts=tuple(getattr(result, "interrupts",()), ())
+
+    # Extracting interrupts directly from the v2 result object
+    interrupts=tuple(getattr(result, "interrupts",()))
 
     # Get the complete graph state using the value property
     value=getattr(result, "value", result)
@@ -97,3 +98,43 @@ def resume_turn(agent, decisions: list[dict], config: dict)->AgentTurnResult:
 
     # Parsing the result of agent invocation.
     return parse_invoke_result(result)
+
+
+def format_interrupt_payload(payload: dict[str, Any])->str:
+    """
+    Formats the payload of an interrupt for display.
+
+    This function takes the payload dictionary from an interrupt and formats it into a human-readable string.
+    """
+
+    # Getting list of actions requested by agent
+    requests=payload.get("action_requests", [])
+    lines=[]
+
+    for index, action in enumerate(requests, start=1):
+        # Extracts the tool name, arguments, and description from the action
+        name=action.get("name", "")
+        args=dict(action.get("args", {}))
+        description=action.get("description", "")
+        lines.append(f"{index}. {name} ({description})")
+
+        for key, value in args.items():
+            preview=str(value)
+
+            # If tool call is any of write_file or edit_file
+            if key in {"content", "old_str", "new_str"}:
+                preview=prepare_file_content(str(args.get("path"), ""), preview)
+            
+            if "\n" in preview:
+                lines.append(f"   {key}:")
+                for body_line in preview.splitlines():
+                    lines.append(f"     {body_line}")
+                continue
+            
+            # Truncate long values for better readability
+            if len(preview)>240:
+                preview=preview[:240]+"..."
+            
+            lines.append(f"     {key}: {preview}")
+        
+    return "\n".join(lines) if lines else str(payload)
