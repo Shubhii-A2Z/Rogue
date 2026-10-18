@@ -1,3 +1,4 @@
+from langgraph.types import Command
 from typing import Any
 from schemas import TurnSummary
 from dataclasses import dataclass
@@ -22,4 +23,19 @@ def start_turn(agent, user_text: str, config: dict)->AgentTurnResult:
         },
         config=config,
         version= "v2"
+    )
+
+
+def resume_turn(agent, decisions: list[dict], config: dict)->AgentTurnResult:
+    """
+    Resumes an interrupted turn, during human-in-the-loop, using the provided decisions from user.
+    """
+    result=agent.invoke(
+        Command(
+            resume={
+                "decisions": decisions
+            }
+        ),
+        config=config,
+        version="v2"
     )
