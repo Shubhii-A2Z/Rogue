@@ -12,6 +12,9 @@ import uuid
 
 
 def ask_approval(tool_name: str)->bool:
+    """
+    This function is used to ask for the user's approval for a tool call.
+    """
     while True:
         response=input(f"Approve {tool_name}? (y/n): ").strip().lower()
         if response in ["y", "yes"]:
@@ -23,6 +26,9 @@ def ask_approval(tool_name: str)->bool:
 
 
 def prompt_decision(pending_interrupt: dict[str, Any])->list[dict]:
+    """
+    This function is used to prompt the user for a decision on the pending interrupt.
+    """
     print("\n---- Human-In-The-Loop -----", flush=True)
     print(format_interrupt_payload(pending_interrupt), flush=True)
 
@@ -47,6 +53,9 @@ def prompt_decision(pending_interrupt: dict[str, Any])->list[dict]:
 
 
 def drain(agent, result: AgentTurnResult, config: dict)->AgentTurnResult:
+    """
+    This function is used to process the pending interrupts of the agent.
+    """
     while result.pending_interrupt is not None:
         decision=prompt_decision(result.pending_interrupt)
         result=resume_turn(agent, decision, config)
