@@ -1,3 +1,5 @@
+from tools import ALL_TOOLS
+from langchain.agents.structured_output import ToolStrategy
 from memory import make_checkpointer
 from langgraph.checkpoint.memory import InMemorySaver
 from schemas import TurnSummary
@@ -5,7 +7,7 @@ from langchain.agents.structured_output import ProviderStrategy
 from prompts import build_system_prompt
 from config.config import hitl_enabled
 from models import build_chat_model
-from middlewares.hitl import built_hitl_middleware
+from middlewares.hitl import build_hitl_middleware
 from middlewares.protection import ProtectionMiddleware
 from middlewares.audit import AuditMiddleware
 from config.config import MAX_MODEL_CALLS_PER_RUN
@@ -40,7 +42,7 @@ def build_middleware(
 
     # Add human approval middleware only when explicitly enabled
     if enable_hitl:
-        layers.append(built_hitl_middleware())
+        layers.append(build_hitl_middleware())
 
     return layers
 
@@ -71,7 +73,7 @@ def build_agent(
         A configured LangChain agent ready to process requests.
     """
 
-     # Create the chat model and retrieve its provider information.
+    # Create the chat model and retrieve its provider information.
     model, _provider=build_chat_model()
 
     # take value of environment variable if enable_hitl is not provided, else use value of enable_hitl
@@ -80,9 +82,10 @@ def build_agent(
     # Combine the model, instructions, middleware, and output schema.
     return create_agent(
         model=model,
+        tools=ALL_TOOLS,
         system_prompt=build_system_prompt(extra_guidance=extra_guidance),
         middleware=build_middleware(enable_hitl=use_hitl),
-        response_format=ProviderStrategy(TurnSummary),
+        response_format=TurnSummary,
         checkpointer=checkpointer or make_checkpointer(),
-        name="Coding Agent"
+        name="Coding Agent",
     )

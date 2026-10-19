@@ -1,4 +1,4 @@
-import fnmatch
+from fnmatch import fnmatch
 from pathlib import Path
 from config.config import get_working_directory
 

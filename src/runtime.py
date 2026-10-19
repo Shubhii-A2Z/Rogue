@@ -124,7 +124,7 @@ def format_interrupt_payload(payload: dict[str, Any])->str:
 
             # If tool call is any of write_file or edit_file
             if key in {"content", "old_str", "new_str"}:
-                preview=prepare_file_content(str(args.get("path"), ""), preview)
+                preview=prepare_file_content(preview, str(args.get("path", "")))
             
             if "\n" in preview:
                 lines.append(f"   {key}:")

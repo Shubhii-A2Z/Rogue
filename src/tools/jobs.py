@@ -20,7 +20,7 @@ class BackgroundJob:
     process: Any=field(default=None, repr=False)
 
 
-_JOBS: dict[int, BackgroundJob]=()
+_JOBS: dict[int, BackgroundJob] = {}
 
 
 def register(job: BackgroundJob)->None:
@@ -79,20 +79,29 @@ def stop_job(pid: int)->str:
         remove_job(pid)
         return f"Job {pid} is already stopped."
     
-    try:
-        os.killpg(pid, signal.SIGTERM) # Sending SIGTERM signal to the process group to terminate it
-    except ProcessLookupError:
-        remove_job(pid)
-        return f"Job {pid} is already stopped."
-    except PermissionError as e:
-        return f"Error stopping job {pid}: {e}"
+    if hasattr(os, "killpg"):
+        try:
+            os.killpg(pid, signal.SIGTERM) # Sending SIGTERM signal to the process group to terminate it
+        except ProcessLookupError:
+            remove_job(pid)
+            return f"Job {pid} is already stopped."
+        except PermissionError as e:
+            return f"Error stopping job {pid}: {e}"
+    elif job.process is not None:
+        try:
+            job.process.terminate()
+        except OSError:
+            pass
     
     if job.process is not None:
         try:
             job.process.wait(timeout=1.5)
         except subprocess.TimeoutExpired:
             with contextlib.suppress(LookupError, PermissionError):
-                os.killpg(pid, signal.SIGKILL)
+                if hasattr(os, "killpg"):
+                    os.killpg(pid, signal.SIGKILL)
+                else:
+                    job.process.kill()
             with contextlib.suppress(subprocess.TimeoutExpired):
                 job.process.wait(timeout=1)
         
@@ -100,14 +109,15 @@ def stop_job(pid: int)->str:
         return f"Job {pid} created by {job.bash_command} stopped successfully."
 
 
-def read_log_tail(log_path: Path, *, max_chars: int=4000)->str:
+def read_log_tail(log_path: Path | str, *, max_chars: int=4000)->str:
     """Returns the last `max_chars` bytes of a log file, or the whole file if smaller."""
 
-    if not log_path.exists():
+    path = Path(log_path)
+    if not path.exists():
         return ""
 
     # Reading the log file
-    text=log_path.read_text(encoding="utf-8", errors="replace")
+    text=path.read_text(encoding="utf-8", errors="replace")
 
     # If log file is larger than max_chars, return the last max_chars bytes
     if len(text)>max_chars:

@@ -6,7 +6,7 @@ from typing import Any
 from collections.abc import Callable
 
 from langgraph.types import Command
-from langchain.tools.tool_node import ToolMessage
+from langchain_core.messages import ToolMessage
 from langchain.agents.middleware import AgentMiddleware, ToolCallRequest
 
 

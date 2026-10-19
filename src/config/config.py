@@ -13,7 +13,7 @@ PROMPTS_DIR = PROJECT_ROOT / "prompts"
 # Setting up the default work directory for AI Coding Agent
 DEFAULT_WORK_DIR = PROJECT_ROOT / "workspace"
 
-AGENT_NAME = "Yet_To_Be_Decided"
+AGENT_NAME = "Rogue Agent"
 
 MAX_MODEL_CALLS_PER_RUN = int(os.getenv("MAX_MODEL_CALLS_PER_RUN","10"))
 

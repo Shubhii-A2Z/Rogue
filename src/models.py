@@ -35,7 +35,7 @@ class Provider:
     model: str
 
 PROVIDERS=[
-    Provider("Groq", "GROQ_API_KEY", True, None, "openai/gpt-oss-20b"),
+    Provider("Groq", "GROQ_API_KEY", True, None, "qwen/qwen3.8-27b"),
 ]
 
 

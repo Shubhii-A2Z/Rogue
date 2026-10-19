@@ -44,7 +44,7 @@ def build_system_prompt(
     Returns:
         The rendered system prompt as a string.
     """
-    return render_template("system.jinja", agent_name, extra_guidance, str(get_working_directory()))
+    return render_template("system.jinja", agent_name=agent_name, extra_guidance=extra_guidance, working_directory=str(get_working_directory()))
 
 
 def build_greeting_prompt(
@@ -63,4 +63,4 @@ def build_greeting_prompt(
     Returns:
         The rendered greeting prompt as a string.
     """
-    return render_template("greetings.jinja", agent_name, str(get_working_directory()))
+    return render_template("greetings.jinja", agent_name=agent_name, working_directory=str(get_working_directory()))

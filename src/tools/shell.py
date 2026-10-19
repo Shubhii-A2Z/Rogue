@@ -2,7 +2,7 @@ from tools.jobs import is_running
 from tools.jobs import all_jobs
 from langchain_core.tools import tool
 from tools.jobs import read_log_tail
-from tools.jobs import stop_job
+from tools.jobs import stop_job as jobs_stop_job
 import time
 from tools.jobs import BackgroundJob
 from tools.jobs import register
@@ -72,19 +72,22 @@ _PYTHON_PREFIX=re.compile(r"^python[0-9.]*\b", re.IGNORECASE)
 def rewrite_command(command: str)->str:
 
     # Path to the executable of current Python virtual environment
-    exec=shlex.quote(sys.executable)
+    if sys.platform == "win32":
+        exec = f'"{sys.executable}"'
+    else:
+        exec = shlex.quote(sys.executable)
 
     stripped=command.strip()
 
     # Check if command matches pip prefix
     if _PIP_PREFIX.match(stripped):
-        return _PIP_PREFIX.sub(f"{exec} -m pip", stripped, count=1)
+        return _PIP_PREFIX.sub(lambda _: f"{exec} -m pip", stripped, count=1)
     
     if _PYTHON_PREFIX.match(stripped):
-        return _PYTHON_PREFIX.sub({exec}, stripped, count=1)
+        return _PYTHON_PREFIX.sub(lambda _: exec, stripped, count=1)
 
     if _FLASK_PREFIX.match(stripped):
-        return _FLASK_PREFIX.sub(f"{exec} -m flask", stripped, count=1)
+        return _FLASK_PREFIX.sub(lambda _: f"{exec} -m flask", stripped, count=1)
     
     return stripped
 
@@ -108,12 +111,13 @@ def _run_foreground(command: str, timeout: int)->str:
 
     try:
         completed=subprocess.run(
-            ["/bin/bash", "-lc", command], # Using bash to execute the command, -l for login shell, -c for command
+            command if sys.platform == "win32" else ["/bin/bash", "-lc", command],
             cwd=current_working_directory,
             env=env,
             timeout=timeout,
             capture_output=True, # Capture stdout/stderr
-            text=True # Decode stdout/stderr as text
+            text=True, # Decode stdout/stderr as text
+            shell=(sys.platform == "win32")
         )
     except subprocess.TimeoutExpired as e:
         stdout=(e.stdout or "") + (e.stderr or "")
@@ -151,27 +155,23 @@ def _run_background(command: str)->str:
     current_timestamp=datetime.now(UTC).isoformat()
     current_timestamp=current_timestamp.replace(":", "").replace("+", "")
 
-    # Creates a temporary log file with prefix 'pending' and timestamp
-    temp_log=log_dir / f"pending-{current_timestamp}.log"
-    # Opening the temporary log file in write mode with UTF-8 encoding
-    log_file=temp_log.open('w', encoding="utf-8")
+    # Creates log file directly with timestamp (avoids Windows file lock issues with renaming open files)
+    log_path=log_dir / f"{current_timestamp}.log"
+    # Opening the log file in write mode with UTF-8 encoding
+    log_file=log_path.open('w', encoding="utf-8")
 
     try:
         process=subprocess.Popen(
-            ["/bin/bash", "-lc", command],
+            command if sys.platform == "win32" else ["/bin/bash", "-lc", command],
             cwd=current_working_directory,
             env=env,
             stdout=log_file, # Redirect standard output to log file
             stderr=subprocess.STDOUT, # Redirect standard error to standard output
-            start_new_session=True # Starts a new session for every command
+            start_new_session=True, # Starts a new session for every command
+            shell=(sys.platform == "win32")
         )
     finally:
         log_file.close()
-
-    # Creating a permanent log file with processId as unique identifier
-    log_path=log_dir / f"{process.pid}.log"
-    # Rename the temporary log file to permanent log file
-    temp_log.rename(log_path)
 
     # Register the background job
     register(
@@ -188,7 +188,7 @@ def _run_background(command: str)->str:
 
     tail=read_log_tail(log_path)
     if process.poll() is not None:
-        stop_job(process.pid)
+        jobs_stop_job(process.pid)
         return (
             f"Background command exited immediately (process_id={process.pid})"
             f"exit_code: {process.returncode}\n{_clip(tail)}"
@@ -219,7 +219,7 @@ def stop_job(pid: int)->str:
         pid: The process id of job to stop
     """
 
-    return stop_job(pid)
+    return jobs_stop_job(pid)
 
 
 @tool
