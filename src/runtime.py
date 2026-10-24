@@ -16,20 +16,32 @@ class AgentTurnResult:
 
 def start_turn(agent, user_text: str, config: dict)->AgentTurnResult:
     """
-    Executes one turn of the agent with the given user input and configuration.
+    Executes one turn of the agent with the given user input and configuration
+    with real-time streaming of messages.
     """
-    result=agent.invoke(
+
+    print("\nRogue: ", end="", flush=True)
+
+    # Only stream conversational content (skip internal tool call tokens)
+    for chunk, _ in agent.stream(
         {
             "messages": [
                 {"role": "user", "content": user_text}
             ]
         },
         config=config,
-        version= "v2"
-    )
+        stream_mode="messages",
+    ):
+        if chunk.content and not getattr(chunk, "tool_call_chunks", None):
+            print(chunk.content, end="", flush=True)
+    
+    print()
+
+    # Retrieve current state to check for interrupts or messages
+    state=agent.get_state(config)
 
     # Parsing the result of agent invocation.
-    return parse_invoke_result(result)
+    return parse_state_result(state)
 
 
 def _as_summary(value: Any)->TurnSummary | None:
@@ -48,16 +60,19 @@ def _as_summary(value: Any)->TurnSummary | None:
     return None
 
 
-def parse_invoke_result(result: Any)->AgentTurnResult:
+def parse_state_result(state: Any)->AgentTurnResult:
     """
-    Parse the result of a v2 agent invocation, extracting messages and interruptions.
+    Parse a state snapshot from agent.get_state(config) to extract messages and interrupts.
     """
 
-    # Extracting interrupts directly from the v2 result object
-    interrupts=tuple(getattr(result, "interrupts",()))
+    # Extracting interrupts directly from the tasks
+    interrupts=[]
+    for task in getattr(state, "tasks", ()):
+        for interrupt in getattr(task, "interrupts", ()):
+            interrupts.append(interrupt)
 
     # Get the complete graph state using the value property
-    value=getattr(result, "value", result)
+    value=getattr(state, "value", {})
     if not isinstance(value, dict):
         value={}
     
@@ -86,18 +101,28 @@ def resume_turn(agent, decisions: list[dict], config: dict)->AgentTurnResult:
     """
     Resumes an interrupted turn, during human-in-the-loop, using the provided decisions from user.
     """
-    result=agent.invoke(
+
+    print("\nRogue: ", end="", flush=True)
+    
+    for chunk, _ in agent.stream(
         Command(
             resume={
                 "decisions": decisions
             }
         ),
         config=config,
-        version="v2"
-    )
+        stream_mode="messages"
+    ):
+        if chunk.content and not getattr(chunk, "tool_call_chunks", None):
+            print(chunk.content, end="", flush=True)
+    
+    print()
+
+    # Retrieve current state to check for interrupts or messages
+    state=agent.get_state(config)
 
     # Parsing the result of agent invocation.
-    return parse_invoke_result(result)
+    return parse_state_result(state)
 
 
 def format_interrupt_payload(payload: dict[str, Any])->str:

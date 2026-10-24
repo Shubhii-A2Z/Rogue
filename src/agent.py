@@ -85,7 +85,6 @@ def build_agent(
         tools=ALL_TOOLS,
         system_prompt=build_system_prompt(extra_guidance=extra_guidance),
         middleware=build_middleware(enable_hitl=use_hitl),
-        response_format=TurnSummary,
         checkpointer=checkpointer or make_checkpointer(),
         name="Coding Agent",
     )

@@ -82,4 +82,4 @@ def build_chat_model()->tuple[ChatGroq, Provider]:
     if provider.base_url is None:
         kwargs["base_url"]=provider.base_url
     
-    return ChatGroq(**kwargs), provider
+    return ChatGroq(**kwargs, streaming=True), provider
