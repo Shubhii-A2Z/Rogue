@@ -22,18 +22,21 @@ def start_turn(agent, user_text: str, config: dict)->AgentTurnResult:
 
     print("\nRogue: ", end="", flush=True)
 
-    # Only stream conversational content (skip internal tool call tokens)
-    for chunk, _ in agent.stream(
+    # Start event streaming (version="v3")
+    stream=agent.stream_events(
         {
             "messages": [
                 {"role": "user", "content": user_text}
             ]
         },
         config=config,
-        stream_mode="messages",
-    ):
-        if chunk.content and not getattr(chunk, "tool_call_chunks", None):
-            print(chunk.content, end="", flush=True)
+        version="v3",
+    )
+    
+    # Stream text tokens live as they are generated
+    for message in stream.messages:
+        for token in message.text:
+            print(token, end="", flush=True)
     
     print()
 
@@ -72,7 +75,7 @@ def parse_state_result(state: Any)->AgentTurnResult:
             interrupts.append(interrupt)
 
     # Get the complete graph state using the value property
-    value=getattr(state, "value", {})
+    value=getattr(state, "values", getattr(state, "value", {}))
     if not isinstance(value, dict):
         value={}
     
@@ -103,18 +106,20 @@ def resume_turn(agent, decisions: list[dict], config: dict)->AgentTurnResult:
     """
 
     print("\nRogue: ", end="", flush=True)
-    
-    for chunk, _ in agent.stream(
+
+    stream=agent.stream_events(
         Command(
             resume={
                 "decisions": decisions
             }
         ),
         config=config,
-        stream_mode="messages"
-    ):
-        if chunk.content and not getattr(chunk, "tool_call_chunks", None):
-            print(chunk.content, end="", flush=True)
+        version="v3",
+    )
+    
+    for message in stream.messages:
+        for token in message.text:
+            print(token, end="", flush=True)
     
     print()
 
