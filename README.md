@@ -11,15 +11,9 @@ Rogue is a command-line coding agent built with **Python**, **LangChain**, and *
 
 ## Demo
 
-<!--
-Option A (best): drag your .mp4 into a GitHub issue or PR comment box, copy the generated
-"user-attachments" URL, and paste it on its own line below. GitHub renders it as an inline player.
 
-Option B: use a clickable thumbnail linked to YouTube:
-[![Rogue demo](docs/demo-thumbnail.png)](https://youtu.be/YOUR_VIDEO_ID)
--->
 
-[![Watch the Rogue demo](https://img.youtube.com/vi/2ea6dgK6CC4/hqdefault.jpg)](https://www.youtube.com/watch?v=2ea6dgK6CC4)
+<p align="center"> <a href="https://www.youtube.com/watch?v=2ea6dgK6CC4"> <img src="https://img.youtube.com/vi/2ea6dgK6CC4/hqdefault.jpg" alt="Watch the Rogue demo" width="640"> </a> <br> <em>Click the thumbnail to watch the demo on YouTube</em> </p>
 
 ---
 
@@ -68,7 +62,6 @@ Rogue is **language-agnostic**. The agent writes and edits plain files, so it ca
 | Middleware | Purpose |
 |---|---|
 | **Human-in-the-loop (HITL)** | Pauses before sensitive tool calls (`[list which tools]`) and lets you approve or reject them |
-| `[other middleware, if any]` | `[what it does]` |
 
 ## How It Works
 
